@@ -4,13 +4,15 @@ import (
 	mongo "app/data"
 	types "app/types"
 	"context"
+	"log"
 
 	"github.com/graphql-go/graphql"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 type TodoStruct struct {
-	ID          *primitive.ObjectID `json:"id" bson:"_id"`
+	ID          *primitive.ObjectID `json:"_id" bson:"_id"`
 	NAME        string              `json:"name"`
 	DESCRIPTION string              `json:"description"`
 }
@@ -21,24 +23,30 @@ var GetTodos = &graphql.Field{
 	Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 		todoCollection := mongo.Client.Database("go-do-list").Collection("Todos")
 
-		todos, err := todoCollection.Find(context.Background(), nil)
+		cursor, err := todoCollection.Find(context.Background(), bson.D{{}})
+
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		var todosList []TodoStruct
 
-		for todos.Next(context.Background()) {
+		// Finding multiple documents returns a cursor
+		// Iterating through the cursor allows us to decode documents one at a time
+		for cursor.Next(context.Background()) {
 			todo := TodoStruct{}
 
 			// convert BSON to struct
-			err := todos.Decode(&todo)
+			err := cursor.Decode(&todo)
 			if err != nil {
-				panic(err)
+				log.Fatal(err)
 			}
 
 			todosList = append(todosList, todo)
 		}
+
+		// Close the cursor once finished
+		cursor.Close(context.Background())
 
 		return todosList, nil
 	},

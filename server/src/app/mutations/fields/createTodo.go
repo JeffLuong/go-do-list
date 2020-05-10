@@ -4,12 +4,13 @@ import (
 	mongo "app/data"
 	types "app/types"
 	"context"
+	"log"
 
 	"github.com/graphql-go/graphql"
 )
 
 type TodoStruct struct {
-	NAME        string `json:"name`
+	NAME        string `json:"name"`
 	DESCRIPTION string `json:"description"`
 }
 
@@ -38,9 +39,11 @@ var CreateTodo = &graphql.Field{
 		})
 
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
-		return TodoStruct{name, description}, nil
+		res := TodoStruct{name, description}
+
+		return res, nil
 	},
 }
